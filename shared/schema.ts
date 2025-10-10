@@ -7,17 +7,19 @@ export const purchases = pgTable("purchases", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   date: timestamp("date", { mode: "date" }).notNull(),
   place: text("place").notNull(),
-  category: text("category").notNull(),
   paymentType: text("payment_type").notNull(),
   checkNumber: text("check_number"),
-  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertPurchaseSchema = createInsertSchema(purchases, {
-  date: z.coerce.date(),
-  price: z.string().regex(/^\d+(\.\d{1,2})?$/, "Invalid price format"),
-  place: z.string().min(1, "Place is required"),
+export const purchaseLineItems = pgTable("purchase_line_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  purchaseId: varchar("purchase_id").notNull().references(() => purchases.id, { onDelete: "cascade" }),
+  category: text("category").notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+});
+
+const lineItemSchema = z.object({
   category: z.enum([
     "Grocery",
     "Restaurant",
@@ -29,6 +31,12 @@ export const insertPurchaseSchema = createInsertSchema(purchases, {
     "Gift",
     "Misc"
   ]),
+  price: z.string().regex(/^\d+(\.\d{1,2})?$/, "Invalid price format"),
+});
+
+export const insertPurchaseSchema = createInsertSchema(purchases, {
+  date: z.coerce.date(),
+  place: z.string().min(1, "Place is required"),
   paymentType: z.enum([
     "Citi x8215",
     "Chase x4694",
@@ -39,10 +47,14 @@ export const insertPurchaseSchema = createInsertSchema(purchases, {
     "HSA"
   ]),
   checkNumber: z.string().optional(),
-}).omit({ id: true, createdAt: true });
+}).omit({ id: true, createdAt: true }).extend({
+  lineItems: z.array(lineItemSchema).min(1, "At least one item is required"),
+});
 
 export type InsertPurchase = z.infer<typeof insertPurchaseSchema>;
 export type Purchase = typeof purchases.$inferSelect;
+export type PurchaseLineItem = typeof purchaseLineItems.$inferSelect;
+export type InsertPurchaseLineItem = z.infer<typeof lineItemSchema>;
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
