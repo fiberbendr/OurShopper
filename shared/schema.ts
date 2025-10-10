@@ -17,18 +17,7 @@ export const purchases = pgTable("purchases", {
 export const insertPurchaseSchema = createInsertSchema(purchases, {
   date: z.coerce.date(),
   price: z.string().regex(/^\d+(\.\d{1,2})?$/, "Invalid price format"),
-  place: z.enum([
-    "Acme",
-    "Arbys",
-    "Chik Fil A",
-    "Chiropractor",
-    "Cornerstone Presbyterian Church",
-    "Dollar Tree",
-    "Farmers Market",
-    "Harvest Market",
-    "Once Upon A Child",
-    "Zingos"
-  ]),
+  place: z.string().min(1, "Place is required"),
   category: z.enum([
     "Grocery",
     "Restaurant",

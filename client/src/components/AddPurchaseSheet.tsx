@@ -47,6 +47,7 @@ const places = [
   "Harvest Market",
   "Once Upon A Child",
   "Zingos",
+  "Other",
 ] as const;
 
 const categories = [
@@ -72,11 +73,14 @@ const paymentTypes = [
 ] as const;
 
 export function AddPurchaseSheet({ open, onOpenChange, onSubmit, isPending }: AddPurchaseSheetProps) {
+  const [selectedPlace, setSelectedPlace] = useState<string>("Acme");
+  const [otherPlace, setOtherPlace] = useState<string>("");
+
   const form = useForm<InsertPurchase>({
     resolver: zodResolver(insertPurchaseSchema),
     defaultValues: {
       date: new Date(),
-      place: "",
+      place: "Acme",
       category: "Grocery",
       paymentType: "Cash",
       checkNumber: "",
@@ -86,10 +90,17 @@ export function AddPurchaseSheet({ open, onOpenChange, onSubmit, isPending }: Ad
 
   const selectedPaymentType = form.watch("paymentType");
   const showCheckNumber = selectedPaymentType === "Check";
+  const showOtherPlace = selectedPlace === "Other";
 
   const handleSubmit = (data: InsertPurchase) => {
-    onSubmit(data);
+    const finalData = {
+      ...data,
+      place: selectedPlace === "Other" ? otherPlace : data.place,
+    };
+    onSubmit(finalData);
     form.reset();
+    setSelectedPlace("Acme");
+    setOtherPlace("");
     onOpenChange(false);
   };
 
@@ -134,17 +145,49 @@ export function AddPurchaseSheet({ open, onOpenChange, onSubmit, isPending }: Ad
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Place</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Store or location"
-                      {...field}
-                      data-testid="input-place"
-                    />
-                  </FormControl>
+                  <Select 
+                    onValueChange={(value) => {
+                      setSelectedPlace(value);
+                      if (value !== "Other") {
+                        field.onChange(value);
+                        setOtherPlace("");
+                      } else {
+                        field.onChange("");
+                      }
+                    }} 
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger data-testid="select-place">
+                        <SelectValue placeholder="Select place" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {places.map((place) => (
+                        <SelectItem key={place} value={place} data-testid={`option-place-${place.toLowerCase().replace(/\s+/g, '-')}`}>
+                          {place}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            {showOtherPlace && (
+              <FormItem>
+                <FormLabel>Other Place</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Enter store or location"
+                    value={otherPlace}
+                    onChange={(e) => setOtherPlace(e.target.value)}
+                    data-testid="input-other-place"
+                  />
+                </FormControl>
+              </FormItem>
+            )}
 
             <FormField
               control={form.control}
