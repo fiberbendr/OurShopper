@@ -14,48 +14,58 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   async getAllPurchases(): Promise<PurchaseWithLineItems[]> {
-    const allPurchases = await db.select().from(purchases).orderBy(desc(purchases.date));
-    
-    const purchasesWithLineItems = await Promise.all(
-      allPurchases.map(async (purchase) => {
-        const lineItems = await db
-          .select()
-          .from(purchaseLineItems)
-          .where(eq(purchaseLineItems.purchaseId, purchase.id));
-        
-        return {
-          ...purchase,
-          lineItems,
-        };
+    const result = await db
+      .select({
+        purchase: purchases,
+        lineItem: purchaseLineItems,
       })
-    );
+      .from(purchases)
+      .leftJoin(purchaseLineItems, eq(purchases.id, purchaseLineItems.purchaseId))
+      .orderBy(desc(purchases.date));
+
+    const purchaseMap = new Map<string, PurchaseWithLineItems>();
     
-    return purchasesWithLineItems;
+    for (const row of result) {
+      if (!purchaseMap.has(row.purchase.id)) {
+        purchaseMap.set(row.purchase.id, {
+          ...row.purchase,
+          lineItems: [],
+        });
+      }
+      
+      if (row.lineItem) {
+        purchaseMap.get(row.purchase.id)!.lineItems.push(row.lineItem);
+      }
+    }
+    
+    return Array.from(purchaseMap.values());
   }
 
   async createPurchase(insertPurchase: InsertPurchase): Promise<PurchaseWithLineItems> {
     const { lineItems, ...purchaseData } = insertPurchase;
     
-    const [purchase] = await db
-      .insert(purchases)
-      .values(purchaseData)
-      .returning();
-    
-    const createdLineItems = await db
-      .insert(purchaseLineItems)
-      .values(
-        lineItems.map((item) => ({
-          purchaseId: purchase.id,
-          category: item.category,
-          price: item.price,
-        }))
-      )
-      .returning();
-    
-    return {
-      ...purchase,
-      lineItems: createdLineItems,
-    };
+    return await db.transaction(async (tx) => {
+      const [purchase] = await tx
+        .insert(purchases)
+        .values(purchaseData)
+        .returning();
+      
+      const createdLineItems = await tx
+        .insert(purchaseLineItems)
+        .values(
+          lineItems.map((item) => ({
+            purchaseId: purchase.id,
+            category: item.category,
+            price: item.price,
+          }))
+        )
+        .returning();
+      
+      return {
+        ...purchase,
+        lineItems: createdLineItems,
+      };
+    });
   }
 
   async deletePurchase(id: string): Promise<void> {
