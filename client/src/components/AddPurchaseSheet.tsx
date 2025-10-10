@@ -36,6 +36,19 @@ interface AddPurchaseSheetProps {
   isPending?: boolean;
 }
 
+const places = [
+  "Acme",
+  "Arbys",
+  "Chik Fil A",
+  "Chiropractor",
+  "Cornerstone Presbyterian Church",
+  "Dollar Tree",
+  "Farmers Market",
+  "Harvest Market",
+  "Once Upon A Child",
+  "Zingos",
+] as const;
+
 const categories = [
   "Grocery",
   "Restaurant",
@@ -55,6 +68,7 @@ const paymentTypes = [
   "Other debit",
   "Check",
   "Cash",
+  "HSA",
 ] as const;
 
 export function AddPurchaseSheet({ open, onOpenChange, onSubmit, isPending }: AddPurchaseSheetProps) {
