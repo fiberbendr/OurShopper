@@ -6,6 +6,25 @@ OurShopper is a mobile-first web application designed for couples and households
 
 ## Recent Changes
 
+### October 10, 2025 - Split Purchase Feature with Line Items
+- **Major Schema Refactoring**: Implemented normalized database schema to support split purchases
+  - Created `purchase_line_items` table with foreign key to `purchases` table (cascade delete)
+  - Each purchase can now have multiple line items, each with its own category and price
+  - Removed category and price fields from purchases table (now stored in line items)
+- **Dynamic Line Item Management**: Enhanced AddPurchaseSheet with add/remove functionality
+  - Users can add multiple items to a single purchase (e.g., Grocery $15 + Clothing $20 at Dollar Tree)
+  - Each line item has independent category and price fields
+  - "Add Item" button to add more line items, trash icon to remove items (minimum 1 required)
+  - Form validation ensures at least one line item with valid category and price
+- **Display & Calculation Updates**: Updated PurchaseCard to show line items and totals
+  - Lists all line items with category badges and individual prices
+  - Total price calculated by summing all line item prices
+  - Home page "Total Spent" sums all line items across all purchases
+- **Performance Optimizations**:
+  - Database transaction wrapping ensures atomic purchase + line items creation
+  - Optimized `getAllPurchases` with single JOIN query (eliminated N+1 pattern)
+  - Efficient memory mapping to reconstruct purchase objects with line items
+
 ### October 10, 2025 - Place Dropdown & HSA Payment Type
 - **Place Field Enhancement**: Changed from free-form text input to dropdown with predefined locations:
   - Acme, Arbys, Chik Fil A, Chiropractor, Cornerstone Presbyterian Church, Dollar Tree, Farmers Market, Harvest Market, Once Upon A Child, Zingos
@@ -64,10 +83,12 @@ RESTful endpoints with WebSocket augmentation:
 - WebSocket at `/ws` for real-time broadcasts
 
 **Data Model:**
-Simplified schema focusing on essential purchase tracking:
-- `purchases` table: date, place, category, payment type, optional check number, price
+Normalized schema for split purchase tracking:
+- `purchases` table: date, place, payment type, optional check number
+- `purchase_line_items` table: category, price, foreign key to purchases (cascade delete)
 - `users` table: basic authentication structure (username/password)
 - UUID primary keys with timestamp tracking
+- Each purchase can have multiple line items with individual categories and prices
 
 **Storage Pattern:**
 Interface-based storage layer (`IStorage`) with `DatabaseStorage` implementation, enabling easy testing and future storage backends.
