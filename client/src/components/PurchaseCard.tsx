@@ -2,19 +2,23 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Trash2 } from "lucide-react";
-import type { Purchase } from "@shared/schema";
+import type { PurchaseWithLineItems } from "../../../server/storage";
 import { CategoryBadge } from "./CategoryBadge";
 import { format } from "date-fns";
 
 interface PurchaseCardProps {
-  purchase: Purchase;
+  purchase: PurchaseWithLineItems;
   onDelete: (id: string) => void;
   isDeleting?: boolean;
 }
 
 export function PurchaseCard({ purchase, onDelete, isDeleting }: PurchaseCardProps) {
   const formattedDate = format(new Date(purchase.date), "MMM d, yyyy");
-  const formattedPrice = new Decimal(purchase.price).toFixed(2);
+  
+  const totalPrice = purchase.lineItems.reduce((sum, item) => {
+    return sum + parseFloat(item.price);
+  }, 0);
+  const formattedTotal = totalPrice.toFixed(2);
   
   const paymentDisplay = purchase.paymentType === "Check" && purchase.checkNumber
     ? `Check #${purchase.checkNumber}`
@@ -35,21 +39,30 @@ export function PurchaseCard({ purchase, onDelete, isDeleting }: PurchaseCardPro
           <h3 className="text-base font-medium mb-2 truncate" data-testid="text-place">
             {purchase.place}
           </h3>
-          <div className="flex flex-wrap gap-2">
-            <CategoryBadge category={purchase.category} />
-            <Badge 
-              variant="outline" 
-              className="text-xs"
-              data-testid="badge-payment"
-            >
-              {paymentDisplay}
-            </Badge>
+          
+          <div className="space-y-2 mb-2">
+            {purchase.lineItems.map((item, index) => (
+              <div key={item.id} className="flex items-center justify-between gap-2">
+                <CategoryBadge category={item.category} />
+                <span className="text-sm font-medium tabular-nums" data-testid={`text-item-price-${index}`}>
+                  ${parseFloat(item.price).toFixed(2)}
+                </span>
+              </div>
+            ))}
           </div>
+
+          <Badge 
+            variant="outline" 
+            className="text-xs"
+            data-testid="badge-payment"
+          >
+            {paymentDisplay}
+          </Badge>
         </div>
         <div className="flex items-start gap-2">
           <div className="text-right">
             <div className="text-xl font-semibold tabular-nums text-primary" data-testid="text-price">
-              ${formattedPrice}
+              ${formattedTotal}
             </div>
           </div>
           <Button
@@ -66,13 +79,4 @@ export function PurchaseCard({ purchase, onDelete, isDeleting }: PurchaseCardPro
       </div>
     </Card>
   );
-}
-
-class Decimal {
-  constructor(private value: string) {}
-  
-  toFixed(decimals: number): string {
-    const num = parseFloat(this.value);
-    return num.toFixed(decimals);
-  }
 }

@@ -8,7 +8,8 @@ import { SyncIndicator } from "@/components/SyncIndicator";
 import { EmptyState } from "@/components/EmptyState";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { Purchase, InsertPurchase } from "@shared/schema";
+import type { InsertPurchase } from "@shared/schema";
+import type { PurchaseWithLineItems } from "../../../server/storage";
 import { useToast } from "@/hooks/use-toast";
 import { useWebSocket } from "@/hooks/use-websocket";
 
@@ -17,7 +18,7 @@ export default function Home() {
   const { toast } = useToast();
   const { status: syncStatus } = useWebSocket();
 
-  const { data: purchases = [], isLoading } = useQuery<Purchase[]>({
+  const { data: purchases = [], isLoading } = useQuery<PurchaseWithLineItems[]>({
     queryKey: ["/api/purchases"],
   });
 
@@ -61,7 +62,10 @@ export default function Home() {
     },
   });
 
-  const totalSpent = purchases.reduce((sum, p) => sum + parseFloat(p.price), 0);
+  const totalSpent = purchases.reduce((sum, p) => {
+    const purchaseTotal = p.lineItems.reduce((itemSum, item) => itemSum + parseFloat(item.price), 0);
+    return sum + purchaseTotal;
+  }, 0);
 
   return (
     <div className="min-h-screen bg-background">
