@@ -1,24 +1,61 @@
-import { purchases, type Purchase, type InsertPurchase } from "@shared/schema";
+import { purchases, purchaseLineItems, type Purchase, type PurchaseLineItem, type InsertPurchase } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
+export type PurchaseWithLineItems = Purchase & {
+  lineItems: PurchaseLineItem[];
+};
+
 export interface IStorage {
-  getAllPurchases(): Promise<Purchase[]>;
-  createPurchase(purchase: InsertPurchase): Promise<Purchase>;
+  getAllPurchases(): Promise<PurchaseWithLineItems[]>;
+  createPurchase(purchase: InsertPurchase): Promise<PurchaseWithLineItems>;
   deletePurchase(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
-  async getAllPurchases(): Promise<Purchase[]> {
-    return await db.select().from(purchases).orderBy(desc(purchases.date));
+  async getAllPurchases(): Promise<PurchaseWithLineItems[]> {
+    const allPurchases = await db.select().from(purchases).orderBy(desc(purchases.date));
+    
+    const purchasesWithLineItems = await Promise.all(
+      allPurchases.map(async (purchase) => {
+        const lineItems = await db
+          .select()
+          .from(purchaseLineItems)
+          .where(eq(purchaseLineItems.purchaseId, purchase.id));
+        
+        return {
+          ...purchase,
+          lineItems,
+        };
+      })
+    );
+    
+    return purchasesWithLineItems;
   }
 
-  async createPurchase(insertPurchase: InsertPurchase): Promise<Purchase> {
+  async createPurchase(insertPurchase: InsertPurchase): Promise<PurchaseWithLineItems> {
+    const { lineItems, ...purchaseData } = insertPurchase;
+    
     const [purchase] = await db
       .insert(purchases)
-      .values(insertPurchase)
+      .values(purchaseData)
       .returning();
-    return purchase;
+    
+    const createdLineItems = await db
+      .insert(purchaseLineItems)
+      .values(
+        lineItems.map((item) => ({
+          purchaseId: purchase.id,
+          category: item.category,
+          price: item.price,
+        }))
+      )
+      .returning();
+    
+    return {
+      ...purchase,
+      lineItems: createdLineItems,
+    };
   }
 
   async deletePurchase(id: string): Promise<void> {
