@@ -74,7 +74,6 @@ const paymentTypes = [
 
 export function AddPurchaseSheet({ open, onOpenChange, onSubmit, isPending }: AddPurchaseSheetProps) {
   const [selectedPlace, setSelectedPlace] = useState<string>("Acme");
-  const [otherPlace, setOtherPlace] = useState<string>("");
 
   const form = useForm<InsertPurchase>({
     resolver: zodResolver(insertPurchaseSchema),
@@ -93,14 +92,9 @@ export function AddPurchaseSheet({ open, onOpenChange, onSubmit, isPending }: Ad
   const showOtherPlace = selectedPlace === "Other";
 
   const handleSubmit = (data: InsertPurchase) => {
-    const finalData = {
-      ...data,
-      place: selectedPlace === "Other" ? otherPlace : data.place,
-    };
-    onSubmit(finalData);
+    onSubmit(data);
     form.reset();
     setSelectedPlace("Acme");
-    setOtherPlace("");
     onOpenChange(false);
   };
 
@@ -150,7 +144,6 @@ export function AddPurchaseSheet({ open, onOpenChange, onSubmit, isPending }: Ad
                       setSelectedPlace(value);
                       if (value !== "Other") {
                         field.onChange(value);
-                        setOtherPlace("");
                       } else {
                         field.onChange("");
                       }
@@ -176,17 +169,23 @@ export function AddPurchaseSheet({ open, onOpenChange, onSubmit, isPending }: Ad
             />
 
             {showOtherPlace && (
-              <FormItem>
-                <FormLabel>Other Place</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Enter store or location"
-                    value={otherPlace}
-                    onChange={(e) => setOtherPlace(e.target.value)}
-                    data-testid="input-other-place"
-                  />
-                </FormControl>
-              </FormItem>
+              <FormField
+                control={form.control}
+                name="place"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Other Place</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter store or location"
+                        {...field}
+                        data-testid="input-other-place"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             )}
 
             <FormField
@@ -292,6 +291,7 @@ export function AddPurchaseSheet({ open, onOpenChange, onSubmit, isPending }: Ad
                 className="flex-1"
                 onClick={() => {
                   form.reset();
+                  setSelectedPlace("Acme");
                   onOpenChange(false);
                 }}
                 disabled={isPending}
