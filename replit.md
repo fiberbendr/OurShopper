@@ -4,6 +4,20 @@
 
 OurShopper is a mobile-first web application designed for couples and households to track and share purchases in real-time. The app focuses on fast, frictionless entry of purchase data with instant synchronization across devices. Built with a utility-focused design approach prioritizing data clarity and scannability, it enables users to quickly log purchases, view spending patterns, and maintain household financial awareness.
 
+## Recent Changes
+
+### October 10, 2025 - Place Dropdown & HSA Payment Type
+- **Place Field Enhancement**: Changed from free-form text input to dropdown with predefined locations:
+  - Acme, Arbys, Chik Fil A, Chiropractor, Cornerstone Presbyterian Church, Dollar Tree, Farmers Market, Harvest Market, Once Upon A Child, Zingos
+  - Added "Other" option with conditional text input for custom locations
+  - Maintains form validation requiring place to be filled when "Other" is selected
+- **Payment Type Addition**: Added "HSA" to payment type options (joining Citi x8215, Chase x4694, WSFS debit, Other debit, Check, Cash)
+- **Implementation Details**:
+  - Updated `shared/schema.ts` to validate place as non-empty string
+  - Modified `AddPurchaseSheet.tsx` to use Select component for place dropdown
+  - Conditional rendering shows text input when "Other" place is selected
+  - React Hook Form properly validates custom place values
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
