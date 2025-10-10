@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -16,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertPurchaseSchema, type InsertPurchase } from "@shared/schema";
 import {
@@ -28,6 +27,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { format } from "date-fns";
+import { Plus, Trash2 } from "lucide-react";
 
 interface AddPurchaseSheetProps {
   open: boolean;
@@ -80,11 +80,15 @@ export function AddPurchaseSheet({ open, onOpenChange, onSubmit, isPending }: Ad
     defaultValues: {
       date: new Date(),
       place: "Acme",
-      category: "Grocery",
       paymentType: "Cash",
       checkNumber: "",
-      price: "",
+      lineItems: [{ category: "Grocery", price: "" }],
     },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "lineItems",
   });
 
   const selectedPaymentType = form.watch("paymentType");
@@ -93,9 +97,25 @@ export function AddPurchaseSheet({ open, onOpenChange, onSubmit, isPending }: Ad
 
   const handleSubmit = (data: InsertPurchase) => {
     onSubmit(data);
-    form.reset();
+    form.reset({
+      date: new Date(),
+      place: "Acme",
+      paymentType: "Cash",
+      checkNumber: "",
+      lineItems: [{ category: "Grocery", price: "" }],
+    });
     setSelectedPlace("Acme");
     onOpenChange(false);
+  };
+
+  const addLineItem = () => {
+    append({ category: "Grocery", price: "" });
+  };
+
+  const removeLineItem = (index: number) => {
+    if (fields.length > 1) {
+      remove(index);
+    }
   };
 
   return (
@@ -108,7 +128,7 @@ export function AddPurchaseSheet({ open, onOpenChange, onSubmit, isPending }: Ad
         <SheetHeader className="mb-6">
           <SheetTitle className="text-xl font-semibold">Add Purchase</SheetTitle>
           <SheetDescription>
-            Enter the details of your purchase below
+            Enter the purchase details and add items with categories and prices
           </SheetDescription>
         </SheetHeader>
 
@@ -190,31 +210,6 @@ export function AddPurchaseSheet({ open, onOpenChange, onSubmit, isPending }: Ad
 
             <FormField
               control={form.control}
-              name="category"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Category</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger data-testid="select-category">
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat} value={cat} data-testid={`option-category-${cat.toLowerCase()}`}>
-                          {cat}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="paymentType"
               render={({ field }) => (
                 <FormItem>
@@ -258,31 +253,91 @@ export function AddPurchaseSheet({ open, onOpenChange, onSubmit, isPending }: Ad
               />
             )}
 
-            <FormField
-              control={form.control}
-              name="price"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Price</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                        $
-                      </span>
-                      <Input
-                        type="text"
-                        inputMode="decimal"
-                        placeholder="0.00"
-                        className="pl-7"
-                        {...field}
-                        data-testid="input-price"
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="space-y-4 pt-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium">Items</h3>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addLineItem}
+                  disabled={isPending}
+                  data-testid="button-add-item"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Item
+                </Button>
+              </div>
+
+              {fields.map((field, index) => (
+                <div key={field.id} className="flex gap-2 items-start" data-testid={`line-item-${index}`}>
+                  <FormField
+                    control={form.control}
+                    name={`lineItems.${index}.category`}
+                    render={({ field }) => (
+                      <FormItem className="flex-1">
+                        {index === 0 && <FormLabel>Category</FormLabel>}
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger data-testid={`select-category-${index}`}>
+                              <SelectValue placeholder="Category" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {categories.map((cat) => (
+                              <SelectItem key={cat} value={cat} data-testid={`option-category-${cat.toLowerCase()}-${index}`}>
+                                {cat}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name={`lineItems.${index}.price`}
+                    render={({ field }) => (
+                      <FormItem className="flex-1">
+                        {index === 0 && <FormLabel>Price</FormLabel>}
+                        <FormControl>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                              $
+                            </span>
+                            <Input
+                              type="text"
+                              inputMode="decimal"
+                              placeholder="0.00"
+                              className="pl-7"
+                              {...field}
+                              data-testid={`input-price-${index}`}
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {fields.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className={`text-destructive hover:text-destructive hover:bg-destructive/10 ${index === 0 ? 'mt-8' : 'mt-0'}`}
+                      onClick={() => removeLineItem(index)}
+                      disabled={isPending}
+                      data-testid={`button-remove-item-${index}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
 
             <div className="flex gap-2 pt-2">
               <Button
@@ -290,7 +345,13 @@ export function AddPurchaseSheet({ open, onOpenChange, onSubmit, isPending }: Ad
                 variant="outline"
                 className="flex-1"
                 onClick={() => {
-                  form.reset();
+                  form.reset({
+                    date: new Date(),
+                    place: "Acme",
+                    paymentType: "Cash",
+                    checkNumber: "",
+                    lineItems: [{ category: "Grocery", price: "" }],
+                  });
                   setSelectedPlace("Acme");
                   onOpenChange(false);
                 }}
