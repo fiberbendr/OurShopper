@@ -27,7 +27,7 @@ OurShopper is a mobile-first web application designed for couples and households
 
 ### October 10, 2025 - Place Dropdown & HSA Payment Type
 - **Place Field Enhancement**: Changed from free-form text input to dropdown with predefined locations:
-  - Acme, Arbys, Chik Fil A, Chiropractor, Cornerstone Presbyterian Church, Dollar Tree, Farmers Market, Harvest Market, Once Upon A Child, Zingos
+  - Acme, Arbys, Chik Fil A, Chiropractor, Cornerstone Presbyterian Church, CVS, Dollar Tree, Farmers Market, Harvest Market, Once Upon A Child, Shell, Speedy Gas, Walgreens, Zingos
   - Added "Other" option with conditional text input for custom locations
   - Maintains form validation requiring place to be filled when "Other" is selected
 - **Payment Type Addition**: Added "HSA" to payment type options (joining Citi x8215, Chase x4694, WSFS debit, Other debit, Check, Cash)
