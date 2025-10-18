@@ -4,6 +4,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { insertPurchaseSchema } from "@shared/schema";
 import { z } from "zod";
+import { sendPurchaseNotification } from "./email";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -44,6 +45,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validated = insertPurchaseSchema.parse(req.body);
       const purchase = await storage.createPurchase(validated);
+      
+      // Send email notification (async, don't wait for it)
+      sendPurchaseNotification(purchase).catch(err => {
+        console.error('Email notification failed:', err);
+      });
       
       // Broadcast to all clients
       broadcast({ type: "purchase_added", purchase });
