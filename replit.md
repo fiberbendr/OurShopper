@@ -6,6 +6,20 @@ OurShopper is a mobile-first web application designed for couples and households
 
 ## Recent Changes
 
+### October 18, 2025 - Email Notifications
+- **Email Notification System**: Implemented automatic email notifications for new purchases
+  - Emails sent to fiberbendr@gmail.com whenever a purchase is created
+  - Email contains: date, place, payment type, line items (category and price), and total
+  - Uses Resend API for reliable email delivery
+  - Non-blocking implementation - email sending doesn't delay purchase creation
+  - Error handling ensures email failures don't break the app
+  - RESEND_API_KEY stored securely in environment variables
+- **Technical Implementation**:
+  - Created `server/email.ts` service module with `sendPurchaseNotification` function
+  - Updated `server/routes.ts` to call email service after purchase creation
+  - Async fire-and-forget pattern for email sending
+  - Comprehensive error logging for monitoring
+
 ### October 10, 2025 - Split Purchase Feature with Line Items
 - **Major Schema Refactoring**: Implemented normalized database schema to support split purchases
   - Created `purchase_line_items` table with foreign key to `purchases` table (cascade delete)
@@ -130,6 +144,11 @@ Interface-based storage layer (`IStorage`) with `DatabaseStorage` implementation
 - **Neon Serverless PostgreSQL** - Primary data store with WebSocket support for connection pooling
 - Connection managed via `@neondatabase/serverless` with WebSocket constructor override
 
+**Email:**
+- **Resend** - Transactional email service for purchase notifications
+- Sends notifications to fiberbendr@gmail.com when purchases are created
+- API key stored in RESEND_API_KEY environment variable
+
 ### Core Libraries
 
 **Frontend:**
@@ -146,6 +165,7 @@ Interface-based storage layer (`IStorage`) with `DatabaseStorage` implementation
 - **drizzle-zod** - Schema validation integration
 - **ws** - WebSocket server implementation
 - **connect-pg-simple** - PostgreSQL session store
+- **resend** - Email service client for transactional notifications
 
 **Validation & Schemas:**
 - **zod** - Runtime type validation
